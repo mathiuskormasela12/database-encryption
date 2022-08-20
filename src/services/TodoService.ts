@@ -4,18 +4,24 @@ import { Inject, Injectable } from "@tsed/di";
 import { MongooseModel } from "@tsed/mongoose";
 import { BodyParams, PathParams } from "@tsed/platform-params";
 import { TodoModel } from "../models";
+import { DatabaseEncryptionService } from "./DatabaseEncryptionService";
 
 @Injectable()
 export class TodoService {
 	constructor(
 		@Inject(TodoModel)
-		private readonly todoModel: MongooseModel<TodoModel>
+		private readonly todoModel: MongooseModel<TodoModel>,
+
+		@Inject(DatabaseEncryptionService) 
+		private readonly databaseEncryptionService: DatabaseEncryptionService
 	) {}
 
 	public async addTodo(@BodyParams() body: TodoModel) {
+		const encryptedField = this.databaseEncryptionService.encrypt(this.todoModel, { title: body.title.toLowerCase() })
+
 		try {
 			const todo = await this.todoModel.findOne({
-				title: body.title.toLowerCase()
+				title: encryptedField.title
 			})
 
 			if(todo) {
@@ -129,6 +135,33 @@ export class TodoService {
 		} catch (err) {
 			return {
 				message: err.message,
+			}
+		}
+	}
+
+	public async encryptAllTitleFields() {
+		try {
+			const todos = await this.todoModel.find();
+
+			for (const todo of todos) {
+				try {
+					await this.todoModel.findByIdAndUpdate(todo._id, {
+						$set: {
+							title: todo.title
+						}
+					})
+					console.log('Encrypted');
+				} catch (err) {
+					console.log(err);
+				}	
+			}
+
+			return {
+				message: 'Encrypted'
+			}
+		} catch (err) {
+			return {
+				message: err.message
 			}
 		}
 	}

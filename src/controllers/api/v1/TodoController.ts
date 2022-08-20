@@ -41,4 +41,9 @@ export class TodoController {
 	public deleteTodo(@PathParams('id') id: string) {
 		return this.todoService.deleteTodo(id);
 	}
+
+	@Put('/encrypt/title')
+	public encryptAllTitleFields() {
+		return this.todoService.encryptAllTitleFields();
+	}
 }
